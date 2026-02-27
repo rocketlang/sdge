@@ -252,7 +252,7 @@ async function loadStats(){
   badge.style.color = ok ? '#86efac' : '#fca5a5';
 
   const max = Math.max(...st.docsByDomain.map(d=>d.count));
-  const ICONS = {LAND:'🏚️',HEALTH:'🏥',AGRICULTURE:'🌾',PROCUREMENT:'📦',EDUCATION:'📚',SUPPLY_CHAIN:'🚢',PDS:'🛒',IOT:'📡'};
+  const ICONS = {TAXATION:'🧾',IDENTITY:'🪪',JUDICIARY:'⚖️',URBAN_LOCAL:'🏙️',FINANCE:'🏦',LABOUR:'👷',TRANSPORT:'🚗',LAND:'🏚️',HEALTH:'🏥',AGRICULTURE:'🌾',PROCUREMENT:'📦',EDUCATION:'📚',SUPPLY_CHAIN:'🚢',PDS:'🛒',IOT:'📡'};
   document.getElementById('domains-body').innerHTML = st.docsByDomain.map(d=>`
     <div class="domain-row">
       <span class="domain-label">${ICONS[d.domain]||''} ${d.domain.replace('_',' ')}</span>

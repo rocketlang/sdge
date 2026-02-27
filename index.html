@@ -459,6 +459,13 @@ const GQL = '/graphql';
 async function q(query){ const r=await fetch(GQL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query})}); return (await r.json()).data; }
 
 const DOMAIN_META = {
+  TAXATION:     { icon:'🧾', label:'Taxation' },
+  IDENTITY:     { icon:'🪪', label:'Identity' },
+  JUDICIARY:    { icon:'⚖️', label:'Judiciary' },
+  URBAN_LOCAL:  { icon:'🏙️', label:'Urban Local' },
+  FINANCE:      { icon:'🏦', label:'Finance' },
+  LABOUR:       { icon:'👷', label:'Labour' },
+  TRANSPORT:    { icon:'🚗', label:'Transport' },
   LAND:         { icon:'🏚️', label:'Land Records' },
   HEALTH:       { icon:'🏥', label:'Health' },
   AGRICULTURE:  { icon:'🌾', label:'Agriculture' },
