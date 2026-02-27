@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SDGE Dashboard — Live Ledger</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#050d1f;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh}
+nav{background:rgba(5,13,31,.95);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.08);
+  padding:0 20px;height:50px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:10}
+.nav-brand{font-size:14px;font-weight:800;color:#fff;text-decoration:none;display:flex;align-items:center;gap:6px}
+.nav-links{display:flex;gap:12px;margin-left:auto}
+.nav-links a{color:rgba(255,255,255,.45);text-decoration:none;font-size:12px}
+.nav-links a:hover,.nav-links a.active{color:#fff}
+.chain-badge{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:3px 10px;border-radius:20px;border:1px solid rgba(34,197,94,.4);background:rgba(34,197,94,.1);color:#86efac}
+.chain-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+.wrap{padding:16px;max-width:1200px;margin:0 auto}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:700px){.stats-grid{grid-template-columns:1fr 1fr}}
+.stat-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px}
+.stat-val{font-size:22px;font-weight:800;color:#fff;font-family:monospace}
+.stat-key{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+
+.row{display:grid;grid-template-columns:1fr 1.4fr;gap:12px;margin-bottom:12px}
+@media(max-width:800px){.row{grid-template-columns:1fr}}
+
+.section{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden}
+.section-head{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);
+  font-size:11px;font-weight:700;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.06em;
+  display:flex;align-items:center;justify-content:space-between;gap:8px}
+.section-body{padding:12px 14px}
+.refresh-btn{background:rgba(255,255,255,.06);border:none;color:rgba(255,255,255,.4);
+  font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer}
+.refresh-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+
+/* domain bars */
+.domain-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.domain-label{width:88px;font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
+.domain-bar-bg{flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+.domain-bar{height:100%;background:linear-gradient(90deg,#1d4ed8,#7c3aed);border-radius:3px;transition:width .8s ease}
+.domain-count{font-size:11px;font-weight:700;color:#c4b5fd;width:20px;text-align:right;flex-shrink:0}
+
+/* recent events */
+.event{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;flex-direction:column;gap:2px}
+.event:last-child{border-bottom:none}
+.event-top{display:flex;align-items:center;gap:6px}
+.event-seq{font-size:10px;color:rgba(255,255,255,.25);width:26px;flex-shrink:0;font-family:monospace}
+.event-action{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(29,78,216,.2);color:#93c5fd}
+.event-domain{font-size:10px;color:rgba(255,255,255,.35);margin-left:auto}
+.event-hash{font-size:10px;color:rgba(255,255,255,.2);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* lookup / ingest */
+.lookup-row{display:flex;gap:8px;margin-bottom:10px}
+.field{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;
+  padding:8px 12px;color:#fff;font-size:13px;outline:none;font-family:inherit}
+.field:focus{border-color:rgba(29,78,216,.5);background:rgba(29,78,216,.08)}
+select.field option{background:#0a1428}
+.btn{padding:8px 16px;background:linear-gradient(135deg,#1e3a8a,#1d4ed8);border:none;border-radius:8px;
+  color:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn:hover{opacity:.85}
+.btn-ghost{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7)}
+.btn-ghost:hover{background:rgba(255,255,255,.1);color:#fff}
+
+.result-box{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.07);border-radius:8px;
+  padding:10px 12px;font-size:11px;color:rgba(255,255,255,.55);font-family:monospace;
+  white-space:pre-wrap;word-break:break-all;min-height:50px;max-height:180px;overflow-y:auto}
+
+/* ingest form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+.textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;
+  padding:8px 12px;color:#fff;font-size:12px;outline:none;font-family:monospace;resize:vertical;min-height:70px}
+.textarea:focus{border-color:rgba(29,78,216,.5)}
+
+/* verify */
+.verify-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.verify-result{font-size:12px;color:rgba(255,255,255,.5)}
+.ok{color:#86efac}.fail{color:#fca5a5}
+
+/* toast */
+#toast{position:fixed;bottom:24px;right:24px;background:#1d4ed8;color:#fff;
+  padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;
+  opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999}
+#toast.show{opacity:1}
+
+.loading{text-align:center;padding:20px;color:rgba(255,255,255,.25);font-size:12px}
+.tab-bar{display:flex;gap:2px;margin-bottom:12px}
+.tab{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;
+  color:rgba(255,255,255,.4);background:none;border:none;transition:all .2s}
+.tab.active{background:rgba(29,78,216,.2);color:#93c5fd;border:1px solid rgba(29,78,216,.35)}
+.tab:hover:not(.active){color:#fff}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+.actor-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;
+  border-radius:4px;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.2);color:#93c5fd}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">📜 SDGE</a>
+  <div class="chain-badge"><span class="chain-dot"></span><span id="chain-txt">…</span></div>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/dashboard" class="active">Dashboard</a>
+    <a href="/login" id="login-link">Login</a>
+    <span id="actor-display" style="display:none"></span>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val" id="s-docs">—</div><div class="stat-key">Total Docs</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-seq">—</div><div class="stat-key">Ledger Seq</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-entries">—</div><div class="stat-key">Chain Entries</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-uptime">—</div><div class="stat-key">Online Since</div></div>
+  </div>
+
+  <div class="row">
+    <!-- Domains -->
+    <div class="section">
+      <div class="section-head">📂 By Domain <button class="refresh-btn" onclick="loadStats()">↻</button></div>
+      <div class="section-body" id="domains-body"><div class="loading">Loading…</div></div>
+    </div>
+
+    <!-- Recent Events -->
+    <div class="section">
+      <div class="section-head">🔗 Recent Chain Events</div>
+      <div class="section-body" id="events-body"><div class="loading">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- Tabs: Lookup / Ingest / Verify -->
+  <div class="section" style="margin-bottom:12px">
+    <div class="section-head" style="padding-bottom:0;border-bottom:none">
+      <div class="tab-bar">
+        <button class="tab active" onclick="switchTab('lookup')">🔍 Document Lookup</button>
+        <button class="tab" onclick="switchTab('ingest')" id="ingest-tab">📥 Ingest Document</button>
+        <button class="tab" onclick="switchTab('verify')">🛡️ Verify Chain</button>
+      </div>
+    </div>
+    <div class="section-body">
+
+      <!-- Lookup -->
+      <div class="tab-panel active" id="tab-lookup">
+        <div class="lookup-row">
+          <input class="field" id="lookup-id" placeholder="Paste Document ID (hex)…" onkeydown="if(event.key==='Enter')lookupDoc()">
+          <button class="btn" onclick="lookupDoc()">Fetch</button>
+        </div>
+        <div class="result-box" id="lookup-result">Enter a document ID to inspect it.</div>
+      </div>
+
+      <!-- Ingest -->
+      <div class="tab-panel" id="tab-ingest">
+        <div id="ingest-locked" style="text-align:center;padding:20px;color:rgba(255,255,255,.35);font-size:13px">
+          🔒 <a href="/login" style="color:#60a5fa">Login as an actor</a> to ingest documents
+        </div>
+        <div id="ingest-form" style="display:none">
+          <div class="form-grid">
+            <input class="field" id="ing-filename" placeholder="Filename (e.g. land-record.txt)">
+            <select class="field" id="ing-domain">
+              <option value="LAND">🏚️ Land</option>
+              <option value="HEALTH">🏥 Health</option>
+              <option value="AGRICULTURE">🌾 Agriculture</option>
+              <option value="PROCUREMENT">📦 Procurement</option>
+              <option value="EDUCATION">📚 Education</option>
+              <option value="SUPPLY_CHAIN">🚢 Supply Chain</option>
+              <option value="PDS">🛒 PDS</option>
+              <option value="IOT">📡 IoT</option>
+            </select>
+          </div>
+          <textarea class="textarea" id="ing-content" placeholder="Paste document content here…"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" onclick="ingestDoc()">⬆ Ingest Document</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('ing-content').value=''">Clear</button>
+          </div>
+          <div class="result-box" id="ingest-result" style="margin-top:10px;display:none"></div>
+        </div>
+      </div>
+
+      <!-- Verify -->
+      <div class="tab-panel" id="tab-verify">
+        <div class="verify-row">
+          <button class="btn" onclick="verifyChain()">Run Chain Verification</button>
+          <div class="verify-result" id="verify-result">Click to verify all ledger entries…</div>
+        </div>
+        <div class="result-box" id="verify-detail" style="margin-top:10px;display:none"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+const GQL = '/graphql';
+async function gql(query, vars){
+  const r = await fetch(GQL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,variables:vars||{}})});
+  const j = await r.json();
+  if(j.errors) throw new Error(j.errors[0].message);
+  return j.data;
+}
+
+function toast(msg, ok=true){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = ok ? '#1d4ed8' : '#dc2626';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+// Auth
+const actor = JSON.parse(localStorage.getItem('sdge_actor')||'null');
+if(actor){
+  document.getElementById('login-link').style.display='none';
+  document.getElementById('actor-display').style.display='inline-flex';
+  document.getElementById('actor-display').innerHTML=`<span class="actor-chip">👤 ${actor.name} <a href="#" onclick="logout()" style="color:#fca5a5;text-decoration:none;margin-left:4px">✕</a></span>`;
+  document.getElementById('ingest-locked').style.display='none';
+  document.getElementById('ingest-form').style.display='block';
+}
+function logout(){ localStorage.removeItem('sdge_actor'); location.reload(); }
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['lookup','ingest','verify'][i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+async function loadStats(){
+  const data = await gql(`{
+    sdgeStats { totalDocs ledgerSeq chainHealth startedAt docsByDomain { domain count } }
+    sdgeVerifyChain { valid totalEntries verifiedAt }
+  }`);
+  const st = data.sdgeStats, cv = data.sdgeVerifyChain;
+  document.getElementById('s-docs').textContent = st.totalDocs;
+  document.getElementById('s-seq').textContent = st.ledgerSeq;
+  document.getElementById('s-entries').textContent = cv.totalEntries;
+  const up = new Date(st.startedAt);
+  document.getElementById('s-uptime').textContent = up.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  const ok = st.chainHealth && cv.valid;
+  document.getElementById('chain-txt').textContent = ok ? 'Chain Valid' : 'Chain Broken';
+  const badge = document.querySelector('.chain-badge');
+  badge.style.borderColor = ok ? 'rgba(34,197,94,.4)' : 'rgba(239,68,68,.4)';
+  badge.style.color = ok ? '#86efac' : '#fca5a5';
+
+  const max = Math.max(...st.docsByDomain.map(d=>d.count));
+  const ICONS = {LAND:'🏚️',HEALTH:'🏥',AGRICULTURE:'🌾',PROCUREMENT:'📦',EDUCATION:'📚',SUPPLY_CHAIN:'🚢',PDS:'🛒',IOT:'📡'};
+  document.getElementById('domains-body').innerHTML = st.docsByDomain.map(d=>`
+    <div class="domain-row">
+      <span class="domain-label">${ICONS[d.domain]||''} ${d.domain.replace('_',' ')}</span>
+      <div class="domain-bar-bg"><div class="domain-bar" style="width:${Math.round(d.count/max*100)}%"></div></div>
+      <span class="domain-count">${d.count}</span>
+    </div>`).join('');
+
+  // events — derive from chain stats
+  document.getElementById('events-body').innerHTML = `
+    <div class="event">
+      <div class="event-top"><span class="event-seq">#${cv.totalEntries}</span><span class="event-action">VERIFY</span><span class="event-domain">ALL</span></div>
+      <div class="event-hash">Chain verified · ${cv.totalEntries} entries · ${new Date(cv.verifiedAt).toLocaleTimeString('en-IN')}</div>
+    </div>
+    <div class="event">
+      <div class="event-top"><span class="event-seq">#${st.ledgerSeq}</span><span class="event-action">INGEST</span><span class="event-domain">${st.docsByDomain[0]?.domain||'—'}</span></div>
+      <div class="event-hash">Latest ledger entry · ${st.totalDocs} total documents indexed</div>
+    </div>
+    <div class="event">
+      <div class="event-top"><span class="event-seq">#1</span><span class="event-action">GENESIS</span><span class="event-domain">INIT</span></div>
+      <div class="event-hash">Chain started ${new Date(st.startedAt).toLocaleString('en-IN')} · Chain health: ${st.chainHealth?'✅':'❌'}</div>
+    </div>`;
+}
+
+async function lookupDoc(){
+  const id = document.getElementById('lookup-id').value.trim();
+  if(!id){ toast('Enter a document ID', false); return; }
+  document.getElementById('lookup-result').textContent = 'Fetching…';
+  try{
+    const data = await gql(`query($id:String!){ sdgeDocument(id:$id){ id domain docType fraudScore documentHash createdAt metadataJson } }`,{id});
+    const doc = data.sdgeDocument;
+    document.getElementById('lookup-result').textContent = doc ? JSON.stringify(doc,null,2) : 'Document not found.';
+  }catch(e){ document.getElementById('lookup-result').textContent='Error: '+e.message; }
+}
+
+async function ingestDoc(){
+  if(!actor){ toast('Login first', false); return; }
+  const content = document.getElementById('ing-content').value.trim();
+  const filename = document.getElementById('ing-filename').value.trim() || 'document.txt';
+  const domain = document.getElementById('ing-domain').value;
+  if(!content){ toast('Paste document content', false); return; }
+  const box = document.getElementById('ingest-result');
+  box.style.display='block'; box.textContent='Ingesting…';
+  try{
+    const data = await gql(`mutation($c:String!,$f:String!,$a:String!,$d:DocumentDomain!){
+      sdgeIngestDocument(content:$c,filename:$f,actorId:$a,domain:$d){
+        document{ id domain docType fraudScore documentHash createdAt }
+        threatLevel
+        fraudSignals{ type confidence detail }
+        zkReceipt{ ledgerSeq commitment }
+      }
+    }`,{c:content,f:filename,a:actor.id,d:domain});
+    box.textContent = JSON.stringify(data.sdgeIngestDocument, null, 2);
+    toast('✅ Document ingested');
+    loadStats();
+  }catch(e){ box.textContent='Error: '+e.message; toast('Ingest failed',false); }
+}
+
+async function verifyChain(){
+  document.getElementById('verify-result').textContent = 'Verifying…';
+  const box = document.getElementById('verify-detail');
+  box.style.display='block'; box.textContent='Running…';
+  try{
+    const data = await gql(`{ sdgeVerifyChain{ valid totalEntries brokenAt verifiedAt } }`);
+    const v = data.sdgeVerifyChain;
+    const el = document.getElementById('verify-result');
+    el.innerHTML = v.valid
+      ? `<span class="ok">✅ Chain intact</span> · ${v.totalEntries} entries · verified ${new Date(v.verifiedAt).toLocaleTimeString('en-IN')}`
+      : `<span class="fail">❌ Broken</span> at entry ${v.brokenAt}`;
+    box.textContent = JSON.stringify(v, null, 2);
+  }catch(e){ document.getElementById('verify-result').textContent='Error: '+e.message; }
+}
+
+loadStats();
+setInterval(loadStats, 30000);
+</script>
+</body>
+</html>

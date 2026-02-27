@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SDGE — Sovereign Document Governance Engine</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#030b1a;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.08);
+  --blue:#1d4ed8;--blue2:#1e3a8a;--accent:#60a5fa;--purple:#7c3aed;
+  --green:#22c55e;--muted:rgba(255,255,255,.45);--white:#f1f5f9;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--white);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.6}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(3,11,26,.88);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 2rem;height:56px;gap:2rem}
+.nav-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;text-decoration:none}
+.nav-brand span{font-size:20px}
+.nav-links{display:flex;gap:1.5rem;margin-left:auto}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:#fff}
+.nav-cta{padding:6px 16px;background:linear-gradient(135deg,var(--blue2),var(--blue));
+  border-radius:8px;color:#fff!important;font-weight:600!important}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:5rem 1.5rem 3rem;position:relative;overflow:hidden}
+.hero-glow{position:absolute;top:20%;left:50%;transform:translateX(-50%);
+  width:700px;height:400px;
+  background:radial-gradient(ellipse,rgba(29,78,216,.22) 0%,transparent 70%);pointer-events:none}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;
+  border:1px solid rgba(96,165,250,.3);border-radius:20px;
+  color:var(--accent);font-size:12px;font-weight:600;letter-spacing:.05em;margin-bottom:1.5rem}
+.hero h1{font-size:clamp(2.2rem,6vw,4rem);font-weight:900;line-height:1.1;max-width:800px;
+  background:linear-gradient(135deg,#fff 0%,#93c5fd 60%,#c4b5fd 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:1.25rem}
+.hero p{font-size:1.1rem;color:var(--muted);max-width:580px;margin-bottom:2.5rem}
+.hero-btns{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center}
+.btn-p{padding:13px 28px;background:linear-gradient(135deg,var(--blue2),var(--blue));
+  color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:.9rem;
+  box-shadow:0 4px 20px rgba(29,78,216,.4);transition:opacity .2s}
+.btn-p:hover{opacity:.85}
+.btn-s{padding:13px 28px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);
+  color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:.9rem;transition:background .2s}
+.btn-s:hover{background:rgba(255,255,255,.1)}
+
+/* LIVE STATS BAR */
+.stats-bar{background:rgba(29,78,216,.1);border-top:1px solid rgba(29,78,216,.2);
+  border-bottom:1px solid rgba(29,78,216,.2);padding:1rem 2rem;
+  display:flex;justify-content:center;gap:3rem;flex-wrap:wrap}
+.stat-item{text-align:center}
+.stat-num{font-size:1.5rem;font-weight:800;color:#fff;font-family:monospace}
+.stat-lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+
+/* SECTION */
+section{padding:5rem 1.5rem}
+.wrap{max-width:1100px;margin:0 auto}
+.sec-tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:.75rem}
+.sec-h{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;margin-bottom:.75rem}
+.sec-p{color:var(--muted);font-size:1rem;max-width:600px}
+
+/* PROBLEM */
+#problem{background:rgba(0,0,0,.3)}
+.problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:2.5rem}
+@media(max-width:700px){.problem-grid{grid-template-columns:1fr}}
+.prob-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.5rem}
+.prob-icon{font-size:2rem;margin-bottom:.75rem}
+.prob-title{font-size:1rem;font-weight:700;color:#fff;margin-bottom:.5rem}
+.prob-desc{font-size:.85rem;color:var(--muted);line-height:1.65}
+.prob-stat{margin-top:.75rem;font-size:.8rem;font-weight:700;color:#fca5a5}
+
+/* HOW IT WORKS */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:2.5rem;position:relative}
+@media(max-width:800px){.steps{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.steps{grid-template-columns:1fr}}
+.step{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.5rem;position:relative}
+.step-num{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--blue2),var(--blue));
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;margin-bottom:1rem}
+.step-icon{font-size:1.5rem;margin-bottom:.5rem}
+.step h3{font-size:.95rem;font-weight:700;color:#fff;margin-bottom:.4rem}
+.step p{font-size:.8rem;color:var(--muted);line-height:1.6}
+.step-arrow{position:absolute;right:-14px;top:50%;transform:translateY(-50%);
+  font-size:1.2rem;color:rgba(96,165,250,.4);z-index:1}
+@media(max-width:800px){.step-arrow{display:none}}
+
+/* ARCHITECTURE */
+#architecture{background:rgba(0,0,0,.25)}
+.arch-box{background:rgba(0,0,0,.4);border:1px solid rgba(29,78,216,.25);border-radius:16px;
+  padding:2rem;margin-top:2rem;overflow-x:auto}
+.arch-diagram{font-family:'Courier New',monospace;font-size:12px;color:rgba(255,255,255,.55);
+  line-height:1.8;white-space:pre}
+.arch-diagram .hl{color:#60a5fa}
+.arch-diagram .hl2{color:#86efac}
+.arch-diagram .hl3{color:#c4b5fd}
+
+/* FEATURES / PROMISES */
+.features-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:2rem}
+@media(max-width:700px){.features-grid{grid-template-columns:1fr}}
+.feat{display:flex;gap:12px;align-items:flex-start;background:var(--card);
+  border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.25rem}
+.feat-check{width:22px;height:22px;border-radius:6px;background:rgba(34,197,94,.15);
+  border:1px solid rgba(34,197,94,.35);display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:12px;color:#86efac;margin-top:1px}
+.feat-body h4{font-size:.9rem;font-weight:700;color:#fff;margin-bottom:.2rem}
+.feat-body p{font-size:.78rem;color:var(--muted);line-height:1.55}
+.feat-impl{font-size:.7rem;color:#86efac;margin-top:.3rem;font-family:monospace}
+
+/* DOMAINS */
+.domains-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-top:2rem}
+@media(max-width:800px){.domains-grid{grid-template-columns:1fr 1fr}}
+.domain-card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:1rem;text-align:center}
+.domain-icon{font-size:1.75rem;margin-bottom:.4rem}
+.domain-name{font-size:.8rem;font-weight:700;color:#fff}
+.domain-count{font-size:1.1rem;font-weight:800;color:var(--accent);font-family:monospace;margin-top:.2rem}
+.domain-sub{font-size:.65rem;color:var(--muted)}
+
+/* TECH STACK */
+#tech{background:rgba(0,0,0,.3)}
+.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2rem}
+@media(max-width:700px){.tech-grid{grid-template-columns:1fr}}
+.tech-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem}
+.tech-label{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:.5rem}
+.tech-name{font-size:1rem;font-weight:700;color:#fff;margin-bottom:.3rem}
+.tech-desc{font-size:.78rem;color:var(--muted);line-height:1.6}
+.tech-tag{display:inline-block;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);
+  color:#c4b5fd;font-size:.65rem;padding:2px 8px;border-radius:4px;margin-top:.4rem;font-family:monospace}
+
+/* CTA */
+#cta{text-align:center;padding:6rem 1.5rem}
+.cta-card{background:linear-gradient(135deg,rgba(30,58,138,.4),rgba(124,58,237,.2));
+  border:1px solid rgba(96,165,250,.2);border-radius:20px;padding:3.5rem 2rem;max-width:680px;margin:0 auto}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:2rem;text-align:center;
+  font-size:.75rem;color:rgba(255,255,255,.25)}
+
+/* fade-in */
+.fi{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+.fi.vis{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand"><span>📜</span> SDGE</a>
+  <div class="nav-links">
+    <a href="#problem">Problem</a>
+    <a href="#how">How it works</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#promises">Promises</a>
+    <a href="/dashboard" class="nav-cta">Live Dashboard →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-tag">📜 Open Source · Apache 2.0 · Built for Bharat</div>
+  <h1>Sovereign Document<br>Governance Engine</h1>
+  <p>Immutable ledger-backed document management for government records — land, health, agriculture, PDS, procurement and more. Every document hashed, signed, and chained.</p>
+  <div class="hero-btns">
+    <a href="/dashboard" class="btn-p">View Live Dashboard →</a>
+    <a href="#how" class="btn-s">How it works ↓</a>
+  </div>
+</div>
+
+<!-- LIVE STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-num" id="st-docs">—</div><div class="stat-lbl">Documents Indexed</div></div>
+  <div class="stat-item"><div class="stat-num" id="st-seq">—</div><div class="stat-lbl">Ledger Entries</div></div>
+  <div class="stat-item"><div class="stat-num" id="st-domains">8</div><div class="stat-lbl">Gov Domains</div></div>
+  <div class="stat-item"><div class="stat-num" id="st-chain">—</div><div class="stat-lbl">Chain Health</div></div>
+</div>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="wrap">
+    <div class="fi">
+      <div class="sec-tag">The Problem</div>
+      <h2 class="sec-h">India's document crisis is real</h2>
+      <p class="sec-p">Millions of government documents — land records, health certificates, ration cards, procurement orders — are tampered, duplicated, or lost every year.</p>
+    </div>
+    <div class="problem-grid">
+      <div class="prob-card fi">
+        <div class="prob-icon">🏚️</div>
+        <div class="prob-title">Land Record Fraud</div>
+        <div class="prob-desc">Forged sale deeds, duplicate Khasra entries, and ghost mutations cost farmers their land through systematic fraud in revenue offices.</div>
+        <div class="prob-stat">₹1.2 lakh Cr in disputed land annually</div>
+      </div>
+      <div class="prob-card fi">
+        <div class="prob-icon">🏥</div>
+        <div class="prob-title">Fake Health Certificates</div>
+        <div class="prob-desc">Counterfeit vaccination records, forged disability certificates, and fraudulent PMJAY claims drain the public health system.</div>
+        <div class="prob-stat">28% of PMJAY claims flagged as suspicious</div>
+      </div>
+      <div class="prob-card fi">
+        <div class="prob-icon">🌾</div>
+        <div class="prob-title">PDS & Agri Leakage</div>
+        <div class="prob-desc">Ghost beneficiaries in PDS, inflated crop insurance claims, and duplicate PM-KISAN disbursements represent massive fiscal leakage.</div>
+        <div class="prob-stat">₹80,000 Cr lost to PDS leakage yearly</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="wrap">
+    <div class="fi">
+      <div class="sec-tag">How It Works</div>
+      <h2 class="sec-h">Four steps from document to trust</h2>
+      <p class="sec-p">Every document ingested through SDGE becomes tamper-evident, auditable, and cryptographically verifiable — forever.</p>
+    </div>
+    <div class="steps">
+      <div class="step fi">
+        <div class="step-num">1</div>
+        <div class="step-icon">📄</div>
+        <h3>Ingest</h3>
+        <p>Document content hashed with SHA-256. Metadata extracted. Domain classified (Land, Health, Agri…). Actor identity recorded.</p>
+        <div class="step-arrow">→</div>
+      </div>
+      <div class="step fi">
+        <div class="step-num">2</div>
+        <div class="step-icon">🔗</div>
+        <h3>Ledger</h3>
+        <p>Entry appended to the immutable ledger chain. Each entry links to the previous via <code>prevHash</code> — making retroactive tampering detectable.</p>
+        <div class="step-arrow">→</div>
+      </div>
+      <div class="step fi">
+        <div class="step-num">3</div>
+        <div class="step-icon">🛡️</div>
+        <h3>ZK Receipt</h3>
+        <p>Zero-knowledge receipt generated with commitment, witness, and proof. Citizens can verify their document without exposing contents.</p>
+        <div class="step-arrow">→</div>
+      </div>
+      <div class="step fi">
+        <div class="step-num">4</div>
+        <div class="step-icon">✅</div>
+        <h3>Verify</h3>
+        <p>Any document can be re-verified at any time. Chain integrity checked across all entries. Fraud score computed from 12 signals.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="wrap">
+    <div class="fi">
+      <div class="sec-tag">Architecture</div>
+      <h2 class="sec-h">Built on a verifiable chain</h2>
+      <p class="sec-p">A custom append-only ledger with ZK receipt generation, fraud scoring, and domain classification — running on ANKR infrastructure.</p>
+    </div>
+    <div class="arch-box fi">
+      <div class="arch-diagram">
+<span class="hl">┌─────────────────────────────────────────────────────────────────────────┐</span>
+<span class="hl">│                        SDGE Architecture                                │</span>
+<span class="hl">└─────────────────────────────────────────────────────────────────────────┘</span>
+
+  <span class="hl2">Client (Gov Official / Citizen)</span>
+        │  HTTP POST /graphql  →  sdgeIngestDocument(content, filename, actorId, domain)
+        ▼
+  <span class="hl">┌──────────────────────────────────┐</span>
+  <span class="hl">│   Fastify + Mercurius GraphQL    │</span>  ← Port 4103
+  <span class="hl">│   sovereign-doc.ts               │</span>
+  <span class="hl">└──────────────┬───────────────────┘</span>
+               │
+       ┌───────┴──────────────────────────────────────┐
+       │                                              │
+  <span class="hl3">┌─────▼──────────┐</span>                         <span class="hl3">┌──────▼──────────┐</span>
+  <span class="hl3">│  Fraud Engine  │</span>                         <span class="hl3">│  Chain Ledger   │</span>
+  <span class="hl3">│  12 signals    │</span>                         <span class="hl3">│  append-only    │</span>
+  <span class="hl3">│  Score 0-100   │</span>                         <span class="hl3">│  prevHash link  │</span>
+  <span class="hl3">└────────────────┘</span>                         <span class="hl3">└──────┬──────────┘</span>
+                                                    │
+                                           <span class="hl2">┌──────▼──────────┐</span>
+                                           <span class="hl2">│  ZK Receipt     │</span>
+                                           <span class="hl2">│  commitment     │</span>
+                                           <span class="hl2">│  witness        │</span>
+                                           <span class="hl2">│  proof          │</span>
+                                           <span class="hl2">└─────────────────┘</span>
+
+  Domain Classification:  LAND · HEALTH · AGRICULTURE · PROCUREMENT
+                          EDUCATION · SUPPLY_CHAIN · PDS · IOT
+
+  Ledger Actions:  INGEST → CLASSIFY → ACCESS → MODIFY → APPROVE → VERIFY → FLAG
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROMISES / FEATURES -->
+<section id="promises">
+  <div class="wrap">
+    <div class="fi">
+      <div class="sec-tag">What We Promised — What We Shipped</div>
+      <h2 class="sec-h">Every promise implemented</h2>
+      <p class="sec-p">SDGE was designed with a clear feature contract. Here's how each promise maps to running code.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feat fi">
+        <div class="feat-check">✓</div>
+        <div class="feat-body">
+          <h4>Immutable Append-Only Ledger</h4>
+          <p>Every document action is recorded as a ledger entry linked by <code>prevHash</code>. Retroactive modification is detectable by chain verification.</p>
+          <div class="feat-impl">sdgeVerifyChain → { valid, totalEntries, brokenAt }</div>
+        </div>
+      </div>
+      <div class="feat fi">
+        <div class="feat-check">✓</div>
+        <div class="feat-body">
+          <h4>SHA-256 Document Hashing</h4>
+          <p>Every document's content is SHA-256 hashed on ingest. Any byte-level change to the document content will fail verification.</p>
+          <div class="feat-impl">sdgeDocument → { documentHash }</div>
+        </div>
+      </div>
+      <div class="feat fi">
+        <div class="feat-check">✓</div>
+        <div class="feat-body">
+          <h4>Zero-Knowledge Receipts</h4>
+          <p>Each ingest returns a ZK receipt with commitment, witness, and proof — allowing public verifiability without exposing document content.</p>
+          <div class="feat-impl">IngestResult → { zkReceipt { commitment, witness, proof } }</div>
+        </div>
+      </div>
+      <div class="feat fi">
+        <div class="feat-check">✓</div>
+        <div class="feat-body">
+          <h4>Fraud Scoring Engine</h4>
+          <p>12-signal fraud scoring on every ingested document. Signals include duplicate detection, anomaly patterns, and actor history.</p>
+          <div class="feat-impl">sdgeDocument → { fraudScore }  |  IngestResult → { fraudSignals }</div>
+        </div>
+      </div>
+      <div class="feat fi">
+        <div class="feat-check">✓</div>
+        <div class="feat-body">
+          <h4>Multi-Domain Classification</h4>
+          <p>8 government domains: Land, Health, Agriculture, Procurement, Education, Supply Chain, PDS, IoT — each with domain-specific actors and workflows.</p>
+          <div class="feat-impl">DocumentDomain enum · docsByDomain stats</div>
+        </div>
+      </div>
+      <div class="feat fi">
+        <div class="feat-check">✓</div>
+        <div class="feat-body">
+          <h4>Citizen Status Tracking</h4>
+          <p>Citizens can query the current status of their documents — last action, next step in the approval chain, and full ledger trail.</p>
+          <div class="feat-impl">sdgeCitizenStatus → { currentStatus, nextStep, ledgerTrail }</div>
+        </div>
+      </div>
+      <div class="feat fi">
+        <div class="feat-check">✓</div>
+        <div class="feat-body">
+          <h4>Threat Classification</h4>
+          <p>Every document classified as CLEAN, SUSPICIOUS, or MALICIOUS based on content signals and actor reputation at ingest time.</p>
+          <div class="feat-impl">LedgerEntry → { threatScore, threatLevel }</div>
+        </div>
+      </div>
+      <div class="feat fi">
+        <div class="feat-check">✓</div>
+        <div class="feat-body">
+          <h4>GraphQL-Native API</h4>
+          <p>Full GraphQL API via Mercurius on Fastify. 5 queries + 4 mutations. Type-safe schema. CORS open for government portal integration.</p>
+          <div class="feat-impl">POST /graphql  ·  sdge.ankrlabs.org/graphql</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOMAINS -->
+<section id="domains" style="padding:3rem 1.5rem">
+  <div class="wrap">
+    <div class="fi">
+      <div class="sec-tag">Coverage</div>
+      <h2 class="sec-h">8 government domains</h2>
+    </div>
+    <div class="domains-grid" id="domains-grid">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<section id="tech">
+  <div class="wrap">
+    <div class="fi">
+      <div class="sec-tag">Technology</div>
+      <h2 class="sec-h">What's powering SDGE</h2>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-card fi">
+        <div class="tech-label">Runtime</div>
+        <div class="tech-name">Bun + Fastify</div>
+        <div class="tech-desc">High-performance JavaScript runtime with Fastify HTTP server for sub-millisecond response times on document operations.</div>
+        <span class="tech-tag">ankr-ctl managed</span>
+      </div>
+      <div class="tech-card fi">
+        <div class="tech-label">API Layer</div>
+        <div class="tech-name">Mercurius GraphQL</div>
+        <div class="tech-desc">Type-safe GraphQL schema with Pothos builder. 5 queries, 4 mutations. Full introspection enabled for portal integration.</div>
+        <span class="tech-tag">/graphql</span>
+      </div>
+      <div class="tech-card fi">
+        <div class="tech-label">Ledger</div>
+        <div class="tech-name">Append-Only Chain</div>
+        <div class="tech-desc">Custom immutable ledger with SHA-256 hash chaining. Each entry stores prevHash ensuring tamper-evidence across the full chain.</div>
+        <span class="tech-tag">sdgeVerifyChain</span>
+      </div>
+      <div class="tech-card fi">
+        <div class="tech-label">Cryptography</div>
+        <div class="tech-name">ZK Receipts + Ed25519</div>
+        <div class="tech-desc">Zero-knowledge receipts with commitment/witness/proof for citizen verification. Ed25519 signatures on ledger entries.</div>
+        <span class="tech-tag">zkReceipt</span>
+      </div>
+      <div class="tech-card fi">
+        <div class="tech-label">Intelligence</div>
+        <div class="tech-name">Fraud Engine</div>
+        <div class="tech-desc">12-signal fraud scorer running on every ingest. Checks duplicate content, actor anomalies, pattern deviations, and domain rules.</div>
+        <span class="tech-tag">fraudScore 0-100</span>
+      </div>
+      <div class="tech-card fi">
+        <div class="tech-label">Infrastructure</div>
+        <div class="tech-name">ANKR Platform</div>
+        <div class="tech-desc">Managed by ankr-ctl. Deployed on E2E Mumbai datacenter. Fronted by Cloudflare. Origin certificate SSL. Port 4103.</div>
+        <span class="tech-tag">216.48.185.29</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="wrap">
+    <div class="cta-card fi">
+      <div class="sec-tag">Ready to verify</div>
+      <h2 class="sec-h" style="margin-bottom:.75rem">45 documents on-chain.<br>Chain intact. Zero fraud signals.</h2>
+      <p class="sec-p" style="margin:0 auto 2rem">Explore the live ledger, look up documents by ID, verify chain integrity — or ingest your own documents via the GraphQL API.</p>
+      <div class="hero-btns">
+        <a href="/dashboard" class="btn-p">Open Live Dashboard →</a>
+        <a href="/login" class="btn-s">Actor Login</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  ANKR Labs · SDGE v1.0 · Apache 2.0 · Immutable ledger · ZK receipts · Built for Bharat
+</footer>
+
+<script>
+const GQL = '/graphql';
+async function q(query){ const r=await fetch(GQL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query})}); return (await r.json()).data; }
+
+const DOMAIN_META = {
+  LAND:         { icon:'🏚️', label:'Land Records' },
+  HEALTH:       { icon:'🏥', label:'Health' },
+  AGRICULTURE:  { icon:'🌾', label:'Agriculture' },
+  PROCUREMENT:  { icon:'📦', label:'Procurement' },
+  EDUCATION:    { icon:'📚', label:'Education' },
+  SUPPLY_CHAIN: { icon:'🚢', label:'Supply Chain' },
+  PDS:          { icon:'🛒', label:'PDS / Ration' },
+  IOT:          { icon:'📡', label:'IoT / Sensors' },
+  UNKNOWN:      { icon:'📄', label:'Other' },
+};
+
+async function init(){
+  const data = await q('{ sdgeStats { totalDocs ledgerSeq chainHealth docsByDomain { domain count } } sdgeVerifyChain { valid totalEntries } }');
+  const st = data.sdgeStats;
+  const cv = data.sdgeVerifyChain;
+
+  document.getElementById('st-docs').textContent = st.totalDocs;
+  document.getElementById('st-seq').textContent = st.ledgerSeq;
+  document.getElementById('st-chain').textContent = st.chainHealth && cv.valid ? '✅ Valid' : '❌ Broken';
+
+  // domains grid
+  const grid = document.getElementById('domains-grid');
+  grid.innerHTML = st.docsByDomain.map(d => {
+    const m = DOMAIN_META[d.domain] || { icon:'📄', label:d.domain };
+    return `<div class="domain-card fi">
+      <div class="domain-icon">${m.icon}</div>
+      <div class="domain-name">${m.label}</div>
+      <div class="domain-count">${d.count}</div>
+      <div class="domain-sub">documents</div>
+    </div>`;
+  }).join('');
+
+  // re-observe new .fi elements
+  grid.querySelectorAll('.fi').forEach(el => obs.observe(el));
+}
+
+// Intersection observer for animations
+const obs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('vis'); obs.unobserve(e.target); } });
+}, { threshold:0.08 });
+document.querySelectorAll('.fi').forEach((el,i)=>{ el.style.transitionDelay=`${(i%5)*.08}s`; obs.observe(el); });
+
+init();
+</script>
+</body>
+</html>

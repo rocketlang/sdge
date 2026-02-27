@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SDGE — Actor Login</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#030b1a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem}
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  border-radius:18px;padding:2.5rem 2rem;width:100%;max-width:460px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:2rem}
+.brand-icon{font-size:28px}
+.brand-name{font-size:18px;font-weight:800;color:#fff}
+.brand-sub{font-size:12px;color:rgba(255,255,255,.4);margin-top:1px}
+h2{font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:.4rem}
+.sub{font-size:.85rem;color:rgba(255,255,255,.45);margin-bottom:1.75rem}
+
+.actor-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1.5rem}
+.actor-btn{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;padding:.875rem 1rem;cursor:pointer;text-align:left;
+  transition:all .2s;color:inherit}
+.actor-btn:hover{border-color:rgba(29,78,216,.5);background:rgba(29,78,216,.08)}
+.actor-btn.selected{border-color:#1d4ed8;background:rgba(29,78,216,.15)}
+.actor-icon{font-size:1.4rem;margin-bottom:.3rem}
+.actor-name{font-size:.82rem;font-weight:700;color:#fff}
+.actor-role{font-size:.7rem;color:rgba(255,255,255,.4);margin-top:.1rem}
+.actor-domain{font-size:.65rem;font-weight:600;color:#93c5fd;margin-top:.2rem;text-transform:uppercase;letter-spacing:.04em}
+
+.field-group{margin-bottom:1rem}
+label{display:block;font-size:.75rem;font-weight:600;color:rgba(255,255,255,.5);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem}
+.field{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;padding:10px 14px;color:#fff;font-size:14px;outline:none;font-family:inherit}
+.field:focus{border-color:rgba(29,78,216,.6);background:rgba(29,78,216,.08)}
+
+.btn-login{width:100%;padding:13px;background:linear-gradient(135deg,#1e3a8a,#1d4ed8);
+  border:none;border-radius:10px;color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 20px rgba(29,78,216,.35);transition:opacity .2s;margin-top:.5rem}
+.btn-login:hover{opacity:.85}
+
+.divider{display:flex;align-items:center;gap:.75rem;margin:1.25rem 0;color:rgba(255,255,255,.2);font-size:.75rem}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.08)}
+
+.google-btn{width:100%;padding:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:background .2s}
+.google-btn:hover{background:rgba(255,255,255,.1)}
+.google-icon{font-size:18px}
+
+.err{color:#fca5a5;font-size:.8rem;margin-top:.5rem;display:none}
+.back{display:block;text-align:center;margin-top:1.25rem;color:rgba(255,255,255,.35);font-size:.8rem;text-decoration:none}
+.back:hover{color:#fff}
+
+.pin-hint{font-size:.7rem;color:rgba(255,255,255,.25);margin-top:.3rem}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="brand">
+    <span class="brand-icon">📜</span>
+    <div>
+      <div class="brand-name">SDGE</div>
+      <div class="brand-sub">Sovereign Document Governance Engine</div>
+    </div>
+  </div>
+
+  <h2>Actor Login</h2>
+  <p class="sub">Select your department and enter your actor PIN to access the ingest console.</p>
+
+  <div class="actor-grid" id="actor-grid">
+    <!-- filled by JS -->
+  </div>
+
+  <div class="field-group">
+    <label>Selected Actor</label>
+    <input class="field" id="actor-id-display" placeholder="Select an actor above…" readonly>
+  </div>
+
+  <div class="field-group">
+    <label>Actor PIN</label>
+    <input class="field" id="pin" type="password" placeholder="Enter your PIN…" maxlength="6" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="pin-hint">Demo PINs: 1234 (all actors)</div>
+  </div>
+  <div class="err" id="err-msg">Incorrect PIN. Try again.</div>
+  <button class="btn-login" onclick="doLogin()">Login →</button>
+
+  <div class="divider">or continue with</div>
+  <button class="google-btn" onclick="googleOAuth()">
+    <span class="google-icon">🔵</span> Continue with Google (coming soon)
+  </button>
+
+  <a href="/dashboard" class="back">← Back to Dashboard</a>
+</div>
+
+<script>
+const ACTORS = [
+  { id:'actor-land-reg-01',   name:'Land Registry',    role:'District Registrar',    domain:'LAND',         icon:'🏚️', pin:'1234' },
+  { id:'actor-hospital-01',   name:'Civil Hospital',   role:'Medical Records Officer', domain:'HEALTH',      icon:'🏥', pin:'1234' },
+  { id:'actor-agri-dept-01',  name:'Agriculture Dept', role:'State Agriculture Officer', domain:'AGRICULTURE', icon:'🌾', pin:'1234' },
+  { id:'actor-gem-01',        name:'GeM Procurement',  role:'Procurement Officer',   domain:'PROCUREMENT',  icon:'📦', pin:'1234' },
+  { id:'actor-cbse-01',       name:'CBSE',             role:'Exam Controller',       domain:'EDUCATION',    icon:'📚', pin:'1234' },
+  { id:'actor-gst-01',        name:'GST / Supply',     role:'Supply Chain Officer',  domain:'SUPPLY_CHAIN', icon:'🚢', pin:'1234' },
+  { id:'actor-fcs-01',        name:'FCS / PDS',        role:'Fair Price Officer',    domain:'SUPPLY_CHAIN', icon:'🛒', pin:'1234' },
+  { id:'actor-discom-01',     name:'DISCOM / IoT',     role:'Smart Grid Officer',    domain:'IOT',          icon:'📡', pin:'1234' },
+];
+
+let selected = null;
+
+const grid = document.getElementById('actor-grid');
+grid.innerHTML = ACTORS.map((a,i) => `
+  <button class="actor-btn" onclick="selectActor(${i})">
+    <div class="actor-icon">${a.icon}</div>
+    <div class="actor-name">${a.name}</div>
+    <div class="actor-role">${a.role}</div>
+    <div class="actor-domain">${a.domain}</div>
+  </button>`).join('');
+
+function selectActor(i){
+  selected = ACTORS[i];
+  document.querySelectorAll('.actor-btn').forEach((b,j)=>b.classList.toggle('selected',j===i));
+  document.getElementById('actor-id-display').value = `${selected.icon} ${selected.name} — ${selected.role}`;
+  document.getElementById('pin').focus();
+}
+
+function doLogin(){
+  if(!selected){ document.getElementById('err-msg').style.display='block'; document.getElementById('err-msg').textContent='Select an actor first.'; return; }
+  const pin = document.getElementById('pin').value;
+  if(pin !== selected.pin){
+    document.getElementById('err-msg').style.display='block';
+    document.getElementById('err-msg').textContent='Incorrect PIN. (Hint: 1234)';
+    return;
+  }
+  // Store actor session
+  localStorage.setItem('sdge_actor', JSON.stringify({ id: selected.id, name: selected.name, role: selected.role, domain: selected.domain, icon: selected.icon }));
+  window.location.href = '/dashboard';
+}
+
+function googleOAuth(){
+  alert('Google OAuth integration coming in v1.1. Use actor PIN login for now.');
+}
+
+// If already logged in, redirect
+if(localStorage.getItem('sdge_actor')) window.location.href='/dashboard';
+</script>
+</body>
+</html>
