@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SDGE — Document Ingest Wizard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#030b1a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+nav{background:rgba(5,13,31,.95);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.08);
+  padding:0 20px;height:50px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:10}
+.nav-brand{font-size:14px;font-weight:800;color:#fff;text-decoration:none;display:flex;align-items:center;gap:6px}
+.nav-links{display:flex;gap:12px;margin-left:auto}
+.nav-links a{color:rgba(255,255,255,.45);text-decoration:none;font-size:12px}
+.nav-links a:hover,.nav-links a.active{color:#fff}
+
+.wrap{max-width:760px;margin:0 auto;padding:2rem 1rem}
+
+/* Progress bar */
+.progress-wrap{margin-bottom:2rem}
+.step-labels{display:flex;justify-content:space-between;margin-bottom:8px}
+.step-lbl{font-size:11px;color:rgba(255,255,255,.3);font-weight:600;text-align:center;flex:1}
+.step-lbl.active{color:#60a5fa}
+.step-lbl.done{color:#86efac}
+.progress-track{height:4px;background:rgba(255,255,255,.08);border-radius:2px;position:relative}
+.progress-fill{height:100%;background:linear-gradient(90deg,#1d4ed8,#7c3aed);border-radius:2px;transition:width .4s ease}
+.step-dots{display:flex;justify-content:space-between;margin-top:-6px;padding:0 2px}
+.dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.15);transition:all .3s}
+.dot.active{background:#1d4ed8;border-color:#1d4ed8;box-shadow:0 0 8px rgba(29,78,216,.5)}
+.dot.done{background:#22c55e;border-color:#22c55e}
+
+/* Card */
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:2rem}
+.card-title{font-size:1.2rem;font-weight:800;color:#fff;margin-bottom:.3rem}
+.card-sub{font-size:.85rem;color:rgba(255,255,255,.45);margin-bottom:1.75rem}
+
+/* Domain grid */
+.domain-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem;margin-bottom:1rem}
+@media(max-width:600px){.domain-grid{grid-template-columns:repeat(3,1fr)}}
+.domain-tile{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;
+  padding:.75rem .5rem;text-align:center;cursor:pointer;transition:all .2s}
+.domain-tile:hover{border-color:rgba(29,78,216,.4);background:rgba(29,78,216,.08)}
+.domain-tile.selected{border-color:#1d4ed8;background:rgba(29,78,216,.18);box-shadow:0 0 12px rgba(29,78,216,.2)}
+.domain-tile .icon{font-size:1.5rem;margin-bottom:.3rem}
+.domain-tile .name{font-size:.65rem;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.04em}
+
+/* Form fields */
+.field-group{margin-bottom:1.1rem}
+label{display:block;font-size:.75rem;font-weight:600;color:rgba(255,255,255,.5);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem}
+.hint{font-size:.7rem;color:rgba(255,255,255,.25);margin-top:.25rem}
+.field{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;padding:10px 14px;color:#fff;font-size:14px;outline:none;font-family:inherit}
+.field:focus{border-color:rgba(29,78,216,.6);background:rgba(29,78,216,.08)}
+.field.error{border-color:rgba(239,68,68,.5)}
+select.field option{background:#0a1428}
+.textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;
+  padding:10px 14px;color:#fff;font-size:13px;outline:none;font-family:monospace;resize:vertical;min-height:140px}
+.textarea:focus{border-color:rgba(29,78,216,.6)}
+.err-msg{font-size:.75rem;color:#fca5a5;margin-top:.3rem;display:none}
+
+/* Dynamic domain fields */
+.domain-fields{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+@media(max-width:500px){.domain-fields{grid-template-columns:1fr}}
+
+/* Review panel */
+.review-grid{display:grid;gap:.6rem}
+.review-row{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.review-row:last-child{border-bottom:none}
+.review-key{font-size:.75rem;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;letter-spacing:.05em;width:120px;flex-shrink:0;margin-top:1px}
+.review-val{font-size:.85rem;color:#fff;word-break:break-all}
+.content-preview{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:8px;
+  padding:10px 12px;font-size:11px;font-family:monospace;color:rgba(255,255,255,.5);
+  max-height:100px;overflow:hidden;position:relative}
+.content-preview::after{content:'';position:absolute;bottom:0;left:0;right:0;height:30px;
+  background:linear-gradient(transparent,rgba(3,11,26,.9))}
+
+/* Result */
+.result-card{border-radius:12px;padding:1.5rem;margin-bottom:1rem}
+.result-ok{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25)}
+.result-fail{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25)}
+.result-icon{font-size:2.5rem;margin-bottom:.75rem}
+.result-title{font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:.4rem}
+.result-sub{font-size:.8rem;color:rgba(255,255,255,.5);line-height:1.6}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:1rem}
+.meta-box{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:.75rem}
+.meta-key{font-size:.65rem;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em}
+.meta-val{font-size:.85rem;font-weight:700;color:#fff;font-family:monospace;margin-top:.2rem;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zk-box{background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:1rem;margin-top:.75rem}
+.zk-label{font-size:.65rem;font-weight:700;color:#c4b5fd;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem}
+.zk-field{font-size:.7rem;font-family:monospace;color:rgba(255,255,255,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fraud-bar{height:6px;border-radius:3px;margin-top:.4rem}
+
+/* Buttons */
+.btn-row{display:flex;gap:.75rem;margin-top:1.75rem;justify-content:flex-end}
+.btn{padding:10px 24px;border-radius:9px;font-size:.875rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,#1e3a8a,#1d4ed8);color:#fff;box-shadow:0 3px 12px rgba(29,78,216,.35)}
+.btn-primary:hover{opacity:.85}
+.btn-secondary{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff}
+.btn-secondary:hover{background:rgba(255,255,255,.12)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">📜 SDGE</a>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/wizard" class="active">Wizard</a>
+    <a href="/workflows">Workflows</a>
+    <a href="/manual">Manual</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="step-labels" id="step-labels">
+      <span class="step-lbl active">1. Domain</span>
+      <span class="step-lbl">2. Details</span>
+      <span class="step-lbl">3. Content</span>
+      <span class="step-lbl">4. Review</span>
+      <span class="step-lbl">5. Result</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:10%"></div>
+    </div>
+    <div class="step-dots">
+      <span class="dot active" id="d0"></span>
+      <span class="dot" id="d1"></span>
+      <span class="dot" id="d2"></span>
+      <span class="dot" id="d3"></span>
+      <span class="dot" id="d4"></span>
+    </div>
+  </div>
+
+  <!-- STEP 1 — Domain -->
+  <div class="card" id="step-1">
+    <div class="card-title">Select Document Domain</div>
+    <div class="card-sub">Choose the government domain this document belongs to.</div>
+    <div class="domain-grid" id="domain-grid"></div>
+    <div class="err-msg" id="err-1" style="display:block;visibility:hidden">Please select a domain.</div>
+    <div class="btn-row"><button class="btn btn-primary" onclick="goStep(2)">Next →</button></div>
+  </div>
+
+  <!-- STEP 2 — Details -->
+  <div class="card" id="step-2" style="display:none">
+    <div class="card-title">Document Details</div>
+    <div class="card-sub">Fill in metadata for this document.</div>
+    <div class="field-group">
+      <label>Filename</label>
+      <input class="field" id="f-filename" placeholder="e.g. land-khasra-452b.txt">
+      <div class="err-msg" id="err-filename">Filename is required.</div>
+    </div>
+    <div class="field-group">
+      <label>Actor (Department / Officer ID)</label>
+      <input class="field" id="f-actor" placeholder="e.g. actor-land-reg-01">
+      <div class="hint">Who is ingesting this document? Use your actor ID from Login.</div>
+      <div class="err-msg" id="err-actor">Actor ID is required.</div>
+    </div>
+    <div id="domain-fields-wrap">
+      <!-- Dynamic per-domain fields injected here -->
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(1)">← Back</button>
+      <button class="btn btn-primary" onclick="goStep(3)">Next →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 — Content -->
+  <div class="card" id="step-3" style="display:none">
+    <div class="card-title">Document Content</div>
+    <div class="card-sub">Paste the full text content of the document. This will be SHA-256 hashed and chained.</div>
+    <div class="field-group">
+      <textarea class="textarea" id="f-content" placeholder="Paste document text here…"></textarea>
+      <div class="hint">Supports: plain text, extracted PDF text, structured records, sensor logs.</div>
+      <div class="err-msg" id="err-content">Document content is required.</div>
+    </div>
+    <div class="field-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="f-detect" checked style="width:16px;height:16px;cursor:pointer">
+        <span style="font-size:.85rem;color:rgba(255,255,255,.6)">Auto-detect domain from content (overrides selection if confident)</span>
+      </label>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(2)">← Back</button>
+      <button class="btn btn-primary" onclick="goStep(4)">Review →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4 — Review -->
+  <div class="card" id="step-4" style="display:none">
+    <div class="card-title">Review & Confirm</div>
+    <div class="card-sub">Verify all details before ingesting to the immutable ledger.</div>
+    <div class="review-grid" id="review-grid"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(3)">← Back</button>
+      <button class="btn btn-primary" id="ingest-btn" onclick="doIngest()">⬆ Ingest to Ledger</button>
+    </div>
+  </div>
+
+  <!-- STEP 5 — Result -->
+  <div class="card" id="step-5" style="display:none">
+    <div id="result-content"></div>
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn btn-primary" onclick="resetWizard()">+ Ingest Another</button>
+      <a href="/dashboard" class="btn btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center">View Dashboard →</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const GQL = '/graphql';
+const DOMAINS = [
+  {id:'LAND',icon:'🏚️',name:'Land'},
+  {id:'HEALTH',icon:'🏥',name:'Health'},
+  {id:'AGRICULTURE',icon:'🌾',name:'Agri'},
+  {id:'PROCUREMENT',icon:'📦',name:'Procure'},
+  {id:'EDUCATION',icon:'📚',name:'Education'},
+  {id:'SUPPLY_CHAIN',icon:'🚢',name:'Supply'},
+  {id:'PDS',icon:'🛒',name:'PDS'},
+  {id:'IOT',icon:'📡',name:'IoT'},
+  {id:'TAXATION',icon:'🧾',name:'Tax'},
+  {id:'IDENTITY',icon:'🪪',name:'Identity'},
+  {id:'JUDICIARY',icon:'⚖️',name:'Judiciary'},
+  {id:'URBAN_LOCAL',icon:'🏙️',name:'Urban'},
+  {id:'FINANCE',icon:'🏦',name:'Finance'},
+  {id:'LABOUR',icon:'👷',name:'Labour'},
+  {id:'TRANSPORT',icon:'🚗',name:'Transport'},
+];
+
+const DOMAIN_FIELDS = {
+  LAND:         [{id:'survey',label:'Survey / Khasra No.',placeholder:'e.g. 452/B'},{id:'district',label:'District',placeholder:'e.g. Gurgaon, Haryana'}],
+  HEALTH:       [{id:'uhid',label:'Patient UHID / ID',placeholder:'e.g. AIIMS-DEL-098712'},{id:'hospital',label:'Hospital',placeholder:'e.g. Civil Hospital Delhi'}],
+  AGRICULTURE:  [{id:'farmer',label:'Farmer Name',placeholder:'e.g. Suresh Patel'},{id:'crop',label:'Crop / Scheme',placeholder:'e.g. Wheat / PM-KISAN'}],
+  PROCUREMENT:  [{id:'tender',label:'Tender / GeM No.',placeholder:'e.g. GEM/2026/B/4521'},{id:'value',label:'Estimated Value',placeholder:'e.g. ₹12.5 Lakh'}],
+  EDUCATION:    [{id:'rollno',label:'Roll / Student No.',placeholder:'e.g. 2110543'},{id:'institution',label:'Institution',placeholder:'e.g. CBSE / Delhi University'}],
+  SUPPLY_CHAIN: [{id:'ewb',label:'EWB / AWB No.',placeholder:'e.g. EWB-2026-DL-88219'},{id:'consignee',label:'Consignee',placeholder:'e.g. DMart, Pune'}],
+  PDS:          [{id:'cardno',label:'Ration Card No.',placeholder:'e.g. PDS-UP-2025-LKO-88421'},{id:'fps',label:'FPS Shop No.',placeholder:'e.g. FPS-RJ-JDH-0041'}],
+  IOT:          [{id:'deviceid',label:'Device ID',placeholder:'e.g. SM-BESCOM-BLR-441892'},{id:'location',label:'Location',placeholder:'e.g. Whitefield, Bengaluru'}],
+  TAXATION:     [{id:'gstin',label:'GSTIN / PAN',placeholder:'e.g. 07AAACR0932J1ZT'},{id:'period',label:'Tax Period',placeholder:'e.g. Jan 2026'}],
+  IDENTITY:     [{id:'uid',label:'UID / ID No.',placeholder:'e.g. EPIC: DL/02/112/452198'},{id:'dob',label:'Date of Birth',placeholder:'e.g. 1985-06-14'}],
+  JUDICIARY:    [{id:'caseno',label:'Case / FIR No.',placeholder:'e.g. FIR No. 0221/2026'},{id:'court',label:'Court / PS',placeholder:'e.g. Delhi High Court'}],
+  URBAN_LOCAL:  [{id:'propid',label:'Property ID / License No.',placeholder:'e.g. MCD/TL/WZ/2025/08821'},{id:'ward',label:'Ward / Zone',placeholder:'e.g. Ward 38W, Delhi'}],
+  FINANCE:      [{id:'accno',label:'Account / Policy No.',placeholder:'e.g. SBI/CORP/2026/HL/04421'},{id:'ifsc',label:'IFSC / Branch',placeholder:'e.g. SBIN0001234'}],
+  LABOUR:       [{id:'uan',label:'UAN / Reg. No.',placeholder:'e.g. UAN: 100452198821'},{id:'employer',label:'Employer',placeholder:'e.g. Tata Consultancy Services'}],
+  TRANSPORT:    [{id:'regno',label:'Reg. / RC / DL No.',placeholder:'e.g. DL-01-CA-4521'},{id:'rto',label:'RTO',placeholder:'e.g. RTO Delhi'}],
+};
+
+let state = { step:1, domain:null, filename:'', actor:'', domainMeta:{}, content:'' };
+
+// Render domain grid
+document.getElementById('domain-grid').innerHTML = DOMAINS.map(d=>
+  `<div class="domain-tile" id="dt-${d.id}" onclick="selectDomain('${d.id}')">
+    <div class="icon">${d.icon}</div>
+    <div class="name">${d.name}</div>
+  </div>`).join('');
+
+// Pre-fill actor from localStorage
+const savedActor = JSON.parse(localStorage.getItem('sdge_actor')||'null');
+if(savedActor){ document.getElementById('f-actor').value = savedActor.id; }
+
+function selectDomain(id){
+  state.domain = id;
+  document.querySelectorAll('.domain-tile').forEach(t=>t.classList.remove('selected'));
+  document.getElementById('dt-'+id).classList.add('selected');
+  renderDomainFields(id);
+}
+
+function renderDomainFields(id){
+  const fields = DOMAIN_FIELDS[id]||[];
+  const wrap = document.getElementById('domain-fields-wrap');
+  if(!fields.length){ wrap.innerHTML=''; return; }
+  wrap.innerHTML = `<div class="domain-fields">${fields.map(f=>`
+    <div class="field-group" style="margin-bottom:0">
+      <label>${f.label}</label>
+      <input class="field" id="dmf-${f.id}" placeholder="${f.placeholder}" style="font-size:13px">
+    </div>`).join('')}</div>`;
+}
+
+function showStep(n){
+  [1,2,3,4,5].forEach(i=>{
+    document.getElementById('step-'+i).style.display = i===n ? 'block' : 'none';
+  });
+  // progress
+  const pct = [10,30,55,75,100][n-1];
+  document.getElementById('progress-fill').style.width = pct+'%';
+  for(let i=0;i<5;i++){
+    const d = document.getElementById('d'+i);
+    d.className = 'dot' + (i+1<n?' done':i+1===n?' active':'');
+  }
+  document.querySelectorAll('.step-lbl').forEach((el,i)=>{
+    el.className = 'step-lbl' + (i+1<n?' done':i+1===n?' active':'');
+  });
+  state.step = n;
+}
+
+function goStep(n){
+  if(n===2){
+    if(!state.domain){ document.getElementById('err-1').style.visibility='visible'; return; }
+    document.getElementById('err-1').style.visibility='hidden';
+    // Pre-fill filename from domain
+    const d = DOMAINS.find(x=>x.id===state.domain);
+    if(!document.getElementById('f-filename').value && d)
+      document.getElementById('f-filename').value = d.id.toLowerCase().replace('_','-')+'-document.txt';
+  }
+  if(n===3){
+    const fn = document.getElementById('f-filename').value.trim();
+    const ac = document.getElementById('f-actor').value.trim();
+    const showErr = (id,show)=>{ document.getElementById(id).style.display=show?'block':'none'; };
+    let ok=true;
+    if(!fn){ showErr('err-filename',true); ok=false; } else showErr('err-filename',false);
+    if(!ac){ showErr('err-actor',true); ok=false; } else showErr('err-actor',false);
+    if(!ok) return;
+    state.filename = fn; state.actor = ac;
+    // collect domain meta fields
+    state.domainMeta = {};
+    (DOMAIN_FIELDS[state.domain]||[]).forEach(f=>{
+      const el = document.getElementById('dmf-'+f.id);
+      if(el && el.value) state.domainMeta[f.label] = el.value;
+    });
+  }
+  if(n===4){
+    const c = document.getElementById('f-content').value.trim();
+    if(!c){ document.getElementById('err-content').style.display='block'; return; }
+    document.getElementById('err-content').style.display='none';
+    state.content = c;
+    renderReview();
+  }
+  showStep(n);
+}
+
+function renderReview(){
+  const d = DOMAINS.find(x=>x.id===state.domain);
+  const meta = Object.entries(state.domainMeta).map(([k,v])=>
+    `<div class="review-row"><span class="review-key">${k}</span><span class="review-val">${v}</span></div>`).join('');
+  document.getElementById('review-grid').innerHTML = `
+    <div class="review-row"><span class="review-key">Domain</span><span class="review-val">${d?.icon} ${state.domain}</span></div>
+    <div class="review-row"><span class="review-key">Filename</span><span class="review-val">${state.filename}</span></div>
+    <div class="review-row"><span class="review-key">Actor ID</span><span class="review-val">${state.actor}</span></div>
+    ${meta}
+    <div class="review-row"><span class="review-key">Content</span><span class="review-val">
+      <div class="content-preview">${state.content.substring(0,300)}${state.content.length>300?'…':''}</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.3);margin-top:.3rem">${state.content.length} characters</div>
+    </span></div>
+    <div class="review-row" style="background:rgba(29,78,216,.06);border-radius:8px;padding:8px 12px;border:1px solid rgba(29,78,216,.15)">
+      <span class="review-key" style="color:#60a5fa">Action</span>
+      <span class="review-val" style="font-size:.8rem;color:rgba(255,255,255,.6)">
+        SHA-256 hash → Append to ledger → Generate ZK receipt → Fraud scoring → Chain link
+      </span>
+    </div>`;
+}
+
+async function doIngest(){
+  const btn = document.getElementById('ingest-btn');
+  btn.disabled=true; btn.textContent='Ingesting…';
+  try{
+    const q = `mutation($c:String!,$f:String!,$a:String!,$d:DocumentDomain!){
+      sdgeIngestDocument(content:$c,filename:$f,actorId:$a,domain:$d){
+        document{ id domain docType fraudScore documentHash createdAt }
+        threatLevel fraudSignals{ type confidence detail }
+        zkReceipt{ ledgerSeq commitment witness proof }
+      }
+    }`;
+    const r = await fetch(GQL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({query:q,variables:{c:state.content,f:state.filename,a:state.actor,d:state.domain}})});
+    const {data,errors} = await r.json();
+    if(errors) throw new Error(errors[0].message);
+    renderResult(data.sdgeIngestDocument);
+    showStep(5);
+  }catch(e){
+    btn.disabled=false; btn.textContent='⬆ Ingest to Ledger';
+    alert('Error: '+e.message);
+  }
+}
+
+function renderResult(res){
+  const doc = res.document, zk = res.zkReceipt, signals = res.fraudSignals||[];
+  const fraudPct = doc.fraudScore;
+  const isClean = res.threatLevel === 'CLEAN';
+  const isMalicious = res.threatLevel === 'MALICIOUS';
+  document.getElementById('result-content').innerHTML = `
+    <div class="result-card ${isMalicious?'result-fail':'result-ok'}">
+      <div class="result-icon">${isMalicious?'🚨':isClean?'✅':'⚠️'}</div>
+      <div class="result-title">Document ${isMalicious?'Flagged':'Ingested Successfully'}</div>
+      <div class="result-sub">Threat Level: <strong style="color:${isMalicious?'#fca5a5':isClean?'#86efac':'#fde047'}">${res.threatLevel}</strong>
+        ${signals.length?` · ${signals.length} fraud signal(s) detected`:' · No fraud signals'}</div>
+    </div>
+    <div class="meta-grid">
+      <div class="meta-box"><div class="meta-key">Document ID</div><div class="meta-val">${doc.id}</div></div>
+      <div class="meta-box"><div class="meta-key">Doc Type</div><div class="meta-val">${doc.docType}</div></div>
+      <div class="meta-box"><div class="meta-key">Fraud Score</div>
+        <div class="meta-val">${fraudPct}/100</div>
+        <div class="fraud-bar" style="background:${fraudPct<30?'rgba(34,197,94,.4)':fraudPct<70?'rgba(245,158,11,.4)':'rgba(239,68,68,.4)'}">
+          <div style="height:100%;width:${fraudPct}%;background:${fraudPct<30?'#22c55e':fraudPct<70?'#f59e0b':'#ef4444'};border-radius:3px"></div>
+        </div>
+      </div>
+      <div class="meta-box"><div class="meta-key">SHA-256 Hash</div><div class="meta-val">${doc.documentHash.substring(0,16)}…</div></div>
+    </div>
+    <div class="zk-box">
+      <div class="zk-label">🔐 Zero-Knowledge Receipt</div>
+      <div class="zk-field">Ledger Seq: ${zk.ledgerSeq}</div>
+      <div class="zk-field">Commitment: ${zk.commitment?.substring(0,48)||'n/a'}…</div>
+      <div class="zk-field">Witness: ${zk.witness?.substring(0,48)||'n/a'}…</div>
+    </div>
+    ${signals.length?`<div style="margin-top:.75rem;padding:.75rem;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px">
+      <div style="font-size:.7rem;font-weight:700;color:#fca5a5;margin-bottom:.4rem">⚠️ FRAUD SIGNALS</div>
+      ${signals.map(s=>`<div style="font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:.2rem">• [${s.type}] ${s.detail} (confidence: ${s.confidence})</div>`).join('')}
+    </div>`:''}`;
+}
+
+function resetWizard(){
+  state = { step:1, domain:null, filename:'', actor:savedActor?.id||'', domainMeta:{}, content:'' };
+  document.querySelectorAll('.domain-tile').forEach(t=>t.classList.remove('selected'));
+  document.getElementById('f-filename').value='';
+  document.getElementById('f-content').value='';
+  if(savedActor) document.getElementById('f-actor').value=savedActor.id;
+  showStep(1);
+}
+
+showStep(1);
+</script>
+</body>
+</html>

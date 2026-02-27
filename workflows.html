@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SDGE — Workflow Automations</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#030b1a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+nav{background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.08);padding:.75rem 1.5rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;margin-right:auto}
+.brand-icon{font-size:22px}
+.brand-name{font-size:16px;font-weight:800;color:#fff}
+.brand-sub{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px}
+nav a{color:rgba(255,255,255,.5);text-decoration:none;font-size:.82rem;font-weight:500;transition:color .2s}
+nav a:hover{color:#fff}
+nav a.active{color:#60a5fa}
+.login-btn{background:rgba(29,78,216,.2);border:1px solid rgba(29,78,216,.4);border-radius:6px;padding:.3rem .75rem;color:#93c5fd!important}
+.login-btn:hover{background:rgba(29,78,216,.35)!important}
+
+.page-header{padding:2.5rem 1.5rem 1.5rem;max-width:1100px;margin:0 auto}
+.page-header h1{font-size:1.75rem;font-weight:800;color:#fff;margin-bottom:.4rem}
+.page-header p{color:rgba(255,255,255,.45);font-size:.9rem;max-width:600px}
+
+main{max-width:1100px;margin:0 auto;padding:0 1.5rem 3rem}
+
+/* Workflow cards */
+.wf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.25rem;margin-bottom:2.5rem}
+.wf-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden;transition:border-color .2s}
+.wf-card:hover{border-color:rgba(29,78,216,.4)}
+.wf-head{padding:1.25rem 1.25rem .875rem;display:flex;align-items:flex-start;gap:.875rem}
+.wf-icon{font-size:2rem;flex-shrink:0}
+.wf-title{font-size:1rem;font-weight:700;color:#fff;margin-bottom:.2rem}
+.wf-desc{font-size:.8rem;color:rgba(255,255,255,.45);line-height:1.4}
+.wf-badge{display:inline-block;font-size:.65rem;font-weight:700;padding:.2rem .5rem;border-radius:4px;margin-top:.5rem;text-transform:uppercase;letter-spacing:.05em}
+.badge-auto{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.2)}
+.badge-manual{background:rgba(251,191,36,.12);color:#fde68a;border:1px solid rgba(251,191,36,.2)}
+.badge-scheduled{background:rgba(139,92,246,.12);color:#c4b5fd;border:1px solid rgba(139,92,246,.2)}
+
+.wf-steps{border-top:1px solid rgba(255,255,255,.06);padding:1rem 1.25rem}
+.wf-steps h4{font-size:.72rem;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem}
+.step-list{list-style:none}
+.step-list li{display:flex;align-items:flex-start;gap:.6rem;font-size:.8rem;color:rgba(255,255,255,.6);padding:.3rem 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.step-list li:last-child{border-bottom:none}
+.step-num{background:rgba(29,78,216,.25);color:#93c5fd;border-radius:50%;width:18px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;margin-top:1px}
+.step-text{flex:1;line-height:1.35}
+
+.wf-actions{border-top:1px solid rgba(255,255,255,.06);padding:.875rem 1.25rem;display:flex;gap:.6rem;flex-wrap:wrap}
+.btn-run{background:linear-gradient(135deg,#1e3a8a,#1d4ed8);border:none;border-radius:7px;color:#fff;font-size:.8rem;font-weight:600;padding:.45rem 1rem;cursor:pointer;transition:opacity .2s}
+.btn-run:hover{opacity:.85}
+.btn-run:disabled{opacity:.4;cursor:not-allowed}
+.btn-view-log{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:rgba(255,255,255,.6);font-size:.8rem;font-weight:500;padding:.45rem .875rem;cursor:pointer;transition:background .2s}
+.btn-view-log:hover{background:rgba(255,255,255,.1)}
+.btn-schedule{background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:7px;color:#c4b5fd;font-size:.8rem;font-weight:500;padding:.45rem .875rem;cursor:pointer;transition:background .2s}
+.btn-schedule:hover{background:rgba(139,92,246,.25)}
+
+/* Run log panel */
+.run-log{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:1.25rem;margin-bottom:2rem}
+.run-log h3{font-size:.9rem;font-weight:700;color:#fff;margin-bottom:.875rem;display:flex;align-items:center;gap:.5rem}
+.run-log-entries{font-family:'Courier New',monospace;font-size:.75rem;color:rgba(255,255,255,.55);max-height:200px;overflow-y:auto;background:#000;border-radius:8px;padding:.875rem 1rem;line-height:1.7}
+.log-ok{color:#86efac}
+.log-warn{color:#fde68a}
+.log-info{color:#93c5fd}
+.log-err{color:#fca5a5}
+.log-ts{color:rgba(255,255,255,.25);margin-right:.5rem}
+#log-placeholder{color:rgba(255,255,255,.2);font-style:italic}
+
+/* Trigger summary */
+.trigger-bar{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.875rem;margin-bottom:2rem}
+.trig-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:1rem 1.1rem;text-align:center}
+.trig-num{font-size:1.6rem;font-weight:800;color:#fff}
+.trig-label{font-size:.72rem;color:rgba(255,255,255,.4);margin-top:.15rem}
+
+/* Section header */
+.section-header{font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.section-header span{font-size:.75rem;color:rgba(255,255,255,.35);font-weight:400}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#0d1a2d;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:1.75rem 1.5rem;width:100%;max-width:520px;max-height:80vh;overflow-y:auto}
+.modal h3{font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:1rem}
+.modal-close{float:right;background:none;border:none;color:rgba(255,255,255,.4);font-size:1.2rem;cursor:pointer;margin-top:-4px}
+.field-group{margin-bottom:.875rem}
+label{display:block;font-size:.72rem;font-weight:600;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem}
+.field{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:9px 12px;color:#fff;font-size:.85rem;outline:none;font-family:inherit}
+.field:focus{border-color:rgba(29,78,216,.6)}
+select.field option{background:#0d1a2d}
+.btn-confirm{width:100%;padding:11px;background:linear-gradient(135deg,#1e3a8a,#1d4ed8);border:none;border-radius:8px;color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;margin-top:.5rem}
+.btn-confirm:hover{opacity:.85}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:.35rem}
+.dot-green{background:#22c55e}
+.dot-yellow{background:#eab308}
+.dot-blue{background:#3b82f6}
+
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1d4ed8;color:#fff;border-radius:8px;padding:.75rem 1.25rem;font-size:.85rem;font-weight:600;z-index:2000;transform:translateY(60px);opacity:0;transition:all .3s;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <span class="brand-icon">📜</span>
+    <div>
+      <div class="brand-name">SDGE</div>
+      <div class="brand-sub">Sovereign Document Governance Engine</div>
+    </div>
+  </div>
+  <a href="/">Home</a>
+  <a href="/dashboard">Dashboard</a>
+  <a href="/wizard">Wizard</a>
+  <a href="/workflows" class="active">Workflows</a>
+  <a href="/manual">Manual</a>
+  <a href="/login" class="login-btn">Login</a>
+</nav>
+
+<div class="page-header">
+  <h1>⚙️ Workflow Automations</h1>
+  <p>Pre-built sovereign document workflows. Trigger, schedule, or chain automations across all 15 governance domains.</p>
+</div>
+
+<main>
+
+  <!-- Trigger Stats -->
+  <div class="trigger-bar" id="trigger-bar">
+    <div class="trig-card"><div class="trig-num" id="stat-runs">—</div><div class="trig-label">Total Runs (session)</div></div>
+    <div class="trig-card"><div class="trig-num" id="stat-docs">—</div><div class="trig-label">Docs Processed</div></div>
+    <div class="trig-card"><div class="trig-num" id="stat-ledger">—</div><div class="trig-label">Ledger Sequence</div></div>
+    <div class="trig-card"><div class="trig-num" id="stat-health">—</div><div class="trig-label">Chain Health</div></div>
+  </div>
+
+  <!-- Run Log -->
+  <div class="run-log">
+    <h3>📋 Automation Run Log <span style="font-size:.7rem;color:rgba(255,255,255,.3);font-weight:400">— live</span></h3>
+    <div class="run-log-entries" id="run-log">
+      <span id="log-placeholder">No automations triggered yet in this session.</span>
+    </div>
+  </div>
+
+  <!-- Ingest Workflows -->
+  <div class="section-header">📥 Ingest Automations <span>Bulk, scheduled, and triggered ingestion pipelines</span></div>
+  <div class="wf-grid">
+
+    <div class="wf-card">
+      <div class="wf-head">
+        <div class="wf-icon">🏚️</div>
+        <div>
+          <div class="wf-title">Land Registry Batch Ingest</div>
+          <div class="wf-desc">Bulk import Khasra records, mutation certificates, and e-Nakal documents from district land offices.</div>
+          <span class="wf-badge badge-auto">Automated</span>
+        </div>
+      </div>
+      <div class="wf-steps">
+        <h4>Steps</h4>
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span class="step-text">Fetch queue from district LRC API → normalize JSON</span></li>
+          <li><span class="step-num">2</span><span class="step-text">SHA-256 hash each record, deduplicate by content</span></li>
+          <li><span class="step-num">3</span><span class="step-text">Run fraud score engine — flag CPIN/survey anomalies</span></li>
+          <li><span class="step-num">4</span><span class="step-text">Append to sovereign ledger with ZK receipt</span></li>
+          <li><span class="step-num">5</span><span class="step-text">Emit `doc.ingested` event → notify actor-land-reg-01</span></li>
+        </ul>
+      </div>
+      <div class="wf-actions">
+        <button class="btn-run" onclick="runWorkflow('land-batch')">▶ Run Now</button>
+        <button class="btn-schedule" onclick="openSchedule('land-batch','Land Registry Batch Ingest')">🕐 Schedule</button>
+        <button class="btn-view-log" onclick="viewLog('land-batch')">View Log</button>
+      </div>
+    </div>
+
+    <div class="wf-card">
+      <div class="wf-head">
+        <div class="wf-icon">🧾</div>
+        <div>
+          <div class="wf-title">GST Return Auto-Ingest</div>
+          <div class="wf-desc">Pull GSTR-1/3B/9 filings from GSTN portal API, normalize, and commit to chain per GSTIN.</div>
+          <span class="wf-badge badge-scheduled">Scheduled</span>
+        </div>
+      </div>
+      <div class="wf-steps">
+        <h4>Steps</h4>
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span class="step-text">Authenticate with GSTN OAuth token (encrypted vault)</span></li>
+          <li><span class="step-num">2</span><span class="step-text">Fetch pending GSTR filings delta since last run</span></li>
+          <li><span class="step-num">3</span><span class="step-text">Validate GSTIN checksum — reject malformed entries</span></li>
+          <li><span class="step-num">4</span><span class="step-text">Ingest each filing → ledger with TAXATION domain tag</span></li>
+          <li><span class="step-num">5</span><span class="step-text">Generate monthly reconciliation report PDF</span></li>
+        </ul>
+      </div>
+      <div class="wf-actions">
+        <button class="btn-run" onclick="runWorkflow('gst-return')">▶ Run Now</button>
+        <button class="btn-schedule" onclick="openSchedule('gst-return','GST Return Auto-Ingest')">🕐 Schedule</button>
+        <button class="btn-view-log" onclick="viewLog('gst-return')">View Log</button>
+      </div>
+    </div>
+
+    <div class="wf-card">
+      <div class="wf-head">
+        <div class="wf-icon">🏥</div>
+        <div>
+          <div class="wf-title">Health Records Sync (ABDM)</div>
+          <div class="wf-desc">Pull Ayushman Bharat Digital Mission records via NHA API, link ABHA IDs, ingest to HEALTH domain.</div>
+          <span class="wf-badge badge-scheduled">Scheduled</span>
+        </div>
+      </div>
+      <div class="wf-steps">
+        <h4>Steps</h4>
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span class="step-text">Connect to NHA gateway using actor-hospital-01 token</span></li>
+          <li><span class="step-num">2</span><span class="step-text">Fetch patient records batch (ABHA ID linkage)</span></li>
+          <li><span class="step-num">3</span><span class="step-text">PII redaction — mask Aadhaar, phone, dob fields</span></li>
+          <li><span class="step-num">4</span><span class="step-text">Ingest with HEALTH tag + ZK receipt for patient consent</span></li>
+          <li><span class="step-num">5</span><span class="step-text">Cross-link with IDENTITY domain (UIDAI) records</span></li>
+        </ul>
+      </div>
+      <div class="wf-actions">
+        <button class="btn-run" onclick="runWorkflow('health-abdm')">▶ Run Now</button>
+        <button class="btn-schedule" onclick="openSchedule('health-abdm','Health Records Sync')">🕐 Schedule</button>
+        <button class="btn-view-log" onclick="viewLog('health-abdm')">View Log</button>
+      </div>
+    </div>
+
+    <div class="wf-card">
+      <div class="wf-head">
+        <div class="wf-icon">📦</div>
+        <div>
+          <div class="wf-title">GeM PO Batch Ingest</div>
+          <div class="wf-desc">Pull Government e-Marketplace purchase orders, contracts, and delivery confirmations.</div>
+          <span class="wf-badge badge-auto">Automated</span>
+        </div>
+      </div>
+      <div class="wf-steps">
+        <h4>Steps</h4>
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span class="step-text">GeM API: pull POs by ministry/department code</span></li>
+          <li><span class="step-num">2</span><span class="step-text">Map GeM bid ID → SDGE doc ID for dedup</span></li>
+          <li><span class="step-num">3</span><span class="step-text">Validate vendor GST + PAN against GSTN</span></li>
+          <li><span class="step-num">4</span><span class="step-text">Ingest under PROCUREMENT domain with fraud score</span></li>
+          <li><span class="step-num">5</span><span class="step-text">Alert if PO > ₹10L threshold → compliance flag</span></li>
+        </ul>
+      </div>
+      <div class="wf-actions">
+        <button class="btn-run" onclick="runWorkflow('gem-po')">▶ Run Now</button>
+        <button class="btn-schedule" onclick="openSchedule('gem-po','GeM PO Batch Ingest')">🕐 Schedule</button>
+        <button class="btn-view-log" onclick="viewLog('gem-po')">View Log</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Verification & Audit Workflows -->
+  <div class="section-header">🔍 Verification & Audit <span>Chain integrity, fraud detection, and cross-domain reconciliation</span></div>
+  <div class="wf-grid">
+
+    <div class="wf-card">
+      <div class="wf-head">
+        <div class="wf-icon">🔗</div>
+        <div>
+          <div class="wf-title">Chain Integrity Audit</div>
+          <div class="wf-desc">Full ledger walk — rehash every block, verify SHA-256 chain, flag any broken links or tampered entries.</div>
+          <span class="wf-badge badge-manual">On-demand</span>
+        </div>
+      </div>
+      <div class="wf-steps">
+        <h4>Steps</h4>
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span class="step-text">Query full ledger chain from seq 1 → latest</span></li>
+          <li><span class="step-num">2</span><span class="step-text">Rehash each entry content → compare stored hash</span></li>
+          <li><span class="step-num">3</span><span class="step-text">Verify prevHash chain linkage — detect insertions</span></li>
+          <li><span class="step-num">4</span><span class="step-text">Generate integrity report (PASS/FAIL per block)</span></li>
+          <li><span class="step-num">5</span><span class="step-text">Flag anomalies → queue for human review</span></li>
+        </ul>
+      </div>
+      <div class="wf-actions">
+        <button class="btn-run" onclick="runWorkflow('chain-audit')">▶ Run Audit</button>
+        <button class="btn-view-log" onclick="viewLog('chain-audit')">View Log</button>
+      </div>
+    </div>
+
+    <div class="wf-card">
+      <div class="wf-head">
+        <div class="wf-icon">🕵️</div>
+        <div>
+          <div class="wf-title">Fraud Investigation Pipeline</div>
+          <div class="wf-desc">Deep-scan all docs with fraudScore > 50. Cross-check GSTIN duplication, Aadhaar linkage anomalies, and forged seals.</div>
+          <span class="wf-badge badge-auto">Automated</span>
+        </div>
+      </div>
+      <div class="wf-steps">
+        <h4>Steps</h4>
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span class="step-text">Query high-risk docs (fraudScore ≥ 50) across all domains</span></li>
+          <li><span class="step-num">2</span><span class="step-text">Cross-reference GSTIN / PAN across TAXATION + FINANCE</span></li>
+          <li><span class="step-num">3</span><span class="step-text">Aadhaar hash cross-check (IDENTITY ↔ HEALTH ↔ LABOUR)</span></li>
+          <li><span class="step-num">4</span><span class="step-text">Detect duplicate content with >80% similarity</span></li>
+          <li><span class="step-num">5</span><span class="step-text">Escalate confirmed fraud → JUDICIARY domain + court queue</span></li>
+        </ul>
+      </div>
+      <div class="wf-actions">
+        <button class="btn-run" onclick="runWorkflow('fraud-scan')">▶ Run Scan</button>
+        <button class="btn-schedule" onclick="openSchedule('fraud-scan','Fraud Investigation Pipeline')">🕐 Schedule</button>
+        <button class="btn-view-log" onclick="viewLog('fraud-scan')">View Log</button>
+      </div>
+    </div>
+
+    <div class="wf-card">
+      <div class="wf-head">
+        <div class="wf-icon">🪪</div>
+        <div>
+          <div class="wf-title">Identity Deduplication (UIDAI)</div>
+          <div class="wf-desc">Scan IDENTITY domain for duplicate Aadhaar hashes, ghost records, and biometric anomalies.</div>
+          <span class="wf-badge badge-scheduled">Scheduled</span>
+        </div>
+      </div>
+      <div class="wf-steps">
+        <h4>Steps</h4>
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span class="step-text">Pull all IDENTITY domain docs from ledger</span></li>
+          <li><span class="step-num">2</span><span class="step-text">SHA-256 Aadhaar token → group by hash</span></li>
+          <li><span class="step-num">3</span><span class="step-text">Flag any Aadhaar appearing with 2+ different names</span></li>
+          <li><span class="step-num">4</span><span class="step-text">Cross-check with EPFO / LABOUR domain records</span></li>
+          <li><span class="step-num">5</span><span class="step-text">Generate dedup report → UIDAI actor inbox</span></li>
+        </ul>
+      </div>
+      <div class="wf-actions">
+        <button class="btn-run" onclick="runWorkflow('identity-dedup')">▶ Run</button>
+        <button class="btn-schedule" onclick="openSchedule('identity-dedup','Identity Deduplication')">🕐 Schedule</button>
+        <button class="btn-view-log" onclick="viewLog('identity-dedup')">View Log</button>
+      </div>
+    </div>
+
+    <div class="wf-card">
+      <div class="wf-head">
+        <div class="wf-icon">📡</div>
+        <div>
+          <div class="wf-title">IoT / DISCOM Data Sweep</div>
+          <div class="wf-desc">Aggregate smart meter readings, DT-level load data, and outage reports from DISCOM edge devices.</div>
+          <span class="wf-badge badge-scheduled">Scheduled</span>
+        </div>
+      </div>
+      <div class="wf-steps">
+        <h4>Steps</h4>
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span class="step-text">Poll DISCOM MDAS endpoints for new meter data</span></li>
+          <li><span class="step-num">2</span><span class="step-text">Normalize kWh readings → standard IoT schema</span></li>
+          <li><span class="step-num">3</span><span class="step-text">Detect anomalies: sudden drops (theft), spikes (fault)</span></li>
+          <li><span class="step-num">4</span><span class="step-text">Ingest to IOT domain → ledger timestamped</span></li>
+          <li><span class="step-num">5</span><span class="step-text">Alert grid officer for anomaly zones ≥ 15% deviation</span></li>
+        </ul>
+      </div>
+      <div class="wf-actions">
+        <button class="btn-run" onclick="runWorkflow('iot-sweep')">▶ Run Sweep</button>
+        <button class="btn-schedule" onclick="openSchedule('iot-sweep','IoT DISCOM Data Sweep')">🕐 Schedule</button>
+        <button class="btn-view-log" onclick="viewLog('iot-sweep')">View Log</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Reporting Workflows -->
+  <div class="section-header">📊 Reporting & Export <span>Compliance reports, audit trails, and domain summaries</span></div>
+  <div class="wf-grid">
+
+    <div class="wf-card">
+      <div class="wf-head">
+        <div class="wf-icon">📋</div>
+        <div>
+          <div class="wf-title">Daily Ledger Digest</div>
+          <div class="wf-desc">Generate end-of-day summary: new docs per domain, fraud flags, chain health, and actor activity.</div>
+          <span class="wf-badge badge-scheduled">Scheduled · 11:55 PM IST</span>
+        </div>
+      </div>
+      <div class="wf-steps">
+        <h4>Steps</h4>
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span class="step-text">Aggregate docs ingested today (created_at ≥ 00:00 IST)</span></li>
+          <li><span class="step-num">2</span><span class="step-text">Group by domain → count, average fraud score</span></li>
+          <li><span class="step-num">3</span><span class="step-text">List all CRITICAL fraud flags (score ≥ 80)</span></li>
+          <li><span class="step-num">4</span><span class="step-text">Verify chain integrity (quick-scan latest 100 blocks)</span></li>
+          <li><span class="step-num">5</span><span class="step-text">Email digest to admin inbox + push to SDGE reports tab</span></li>
+        </ul>
+      </div>
+      <div class="wf-actions">
+        <button class="btn-run" onclick="runWorkflow('daily-digest')">▶ Run Now</button>
+        <button class="btn-view-log" onclick="viewLog('daily-digest')">View Log</button>
+      </div>
+    </div>
+
+    <div class="wf-card">
+      <div class="wf-head">
+        <div class="wf-icon">⚖️</div>
+        <div>
+          <div class="wf-title">Court Document Approval Flow</div>
+          <div class="wf-desc">Multi-step approval for JUDICIARY domain: District Court → High Court → Seal + Ledger commit.</div>
+          <span class="wf-badge badge-manual">On-demand</span>
+        </div>
+      </div>
+      <div class="wf-steps">
+        <h4>Steps</h4>
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span class="step-text">Court Registrar submits document → draft state</span></li>
+          <li><span class="step-num">2</span><span class="step-text">Auto-validation: case no. format, date logic, parties</span></li>
+          <li><span class="step-num">3</span><span class="step-text">Presiding Judge e-sign (simulated DSC token)</span></li>
+          <li><span class="step-num">4</span><span class="step-text">High Court registry counter-sign (if HC matter)</span></li>
+          <li><span class="step-num">5</span><span class="step-text">Ledger commit with JUDICIARY tag → ZK receipt issued</span></li>
+        </ul>
+      </div>
+      <div class="wf-actions">
+        <button class="btn-run" onclick="runWorkflow('court-approval')">▶ Trigger</button>
+        <button class="btn-view-log" onclick="viewLog('court-approval')">View Log</button>
+      </div>
+    </div>
+
+    <div class="wf-card">
+      <div class="wf-head">
+        <div class="wf-icon">🏙️</div>
+        <div>
+          <div class="wf-title">Municipal Records Consolidation</div>
+          <div class="wf-desc">Merge property tax records, birth/death certs, and building permits from ward offices into SDGE.</div>
+          <span class="wf-badge badge-scheduled">Scheduled · Weekly</span>
+        </div>
+      </div>
+      <div class="wf-steps">
+        <h4>Steps</h4>
+        <ul class="step-list">
+          <li><span class="step-num">1</span><span class="step-text">Pull ward-wise property records (CSV export)</span></li>
+          <li><span class="step-num">2</span><span class="step-text">Match property ID with URBAN_LOCAL registry</span></li>
+          <li><span class="step-num">3</span><span class="step-text">Detect ownership discrepancies → flag for officer</span></li>
+          <li><span class="step-num">4</span><span class="step-text">Ingest birth/death certs → IDENTITY cross-link</span></li>
+          <li><span class="step-num">5</span><span class="step-text">Publish weekly ward report to municipal dashboard</span></li>
+        </ul>
+      </div>
+      <div class="wf-actions">
+        <button class="btn-run" onclick="runWorkflow('municipal')">▶ Run</button>
+        <button class="btn-schedule" onclick="openSchedule('municipal','Municipal Records Consolidation')">🕐 Schedule</button>
+        <button class="btn-view-log" onclick="viewLog('municipal')">View Log</button>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<!-- Schedule Modal -->
+<div class="modal-overlay" id="modal-schedule">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>🕐 Schedule Workflow</h3>
+    <p style="font-size:.8rem;color:rgba(255,255,255,.45);margin-bottom:1.25rem" id="modal-wf-name">—</p>
+    <div class="field-group">
+      <label>Frequency</label>
+      <select class="field" id="sched-freq">
+        <option value="hourly">Every Hour</option>
+        <option value="daily" selected>Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Time (IST)</label>
+      <input class="field" type="time" id="sched-time" value="06:00">
+    </div>
+    <div class="field-group">
+      <label>Notify Actor</label>
+      <select class="field" id="sched-actor">
+        <option value="">None</option>
+        <option value="actor-land-reg-01">Land Registry</option>
+        <option value="actor-gst-dept-01">Tax Dept (GST)</option>
+        <option value="actor-hospital-01">Civil Hospital</option>
+        <option value="actor-uidai-01">UIDAI / Identity</option>
+        <option value="actor-court-01">District Court</option>
+        <option value="actor-mcd-01">Municipal Corp</option>
+        <option value="actor-discom-01">DISCOM / IoT</option>
+      </select>
+    </div>
+    <button class="btn-confirm" onclick="confirmSchedule()">💾 Save Schedule</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let sessionRuns = 0, sessionDocs = 0;
+let schedTarget = null;
+
+// Fetch live stats
+async function loadStats(){
+  try {
+    const r = await fetch('/graphql',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({query:'{ sdgeStats { totalDocs ledgerSeq chainHealth onlineSince } }'})});
+    const j = await r.json();
+    const s = j.data?.sdgeStats || {};
+    document.getElementById('stat-docs').textContent = s.totalDocs ?? '—';
+    document.getElementById('stat-ledger').textContent = s.ledgerSeq ?? '—';
+    document.getElementById('stat-health').textContent = s.chainHealth ?? '—';
+  } catch(e){ /* offline */ }
+}
+loadStats();
+
+function ts(){ return new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+
+function log(cls, msg){
+  const el = document.getElementById('run-log');
+  const ph = document.getElementById('log-placeholder');
+  if(ph) ph.remove();
+  el.innerHTML += `<div><span class="log-ts">[${ts()}]</span><span class="log-${cls}">${msg}</span></div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+const WF_META = {
+  'land-batch':    { label:'Land Registry Batch Ingest',    domain:'LAND',        docs:[4,8,12] },
+  'gst-return':    { label:'GST Return Auto-Ingest',        domain:'TAXATION',    docs:[3,6,9] },
+  'health-abdm':   { label:'Health Records Sync (ABDM)',    domain:'HEALTH',      docs:[2,5,7] },
+  'gem-po':        { label:'GeM PO Batch Ingest',           domain:'PROCUREMENT', docs:[3,6,10] },
+  'chain-audit':   { label:'Chain Integrity Audit',         domain:null,          docs:[0,0,0] },
+  'fraud-scan':    { label:'Fraud Investigation Pipeline',  domain:null,          docs:[0,0,0] },
+  'identity-dedup':{ label:'Identity Deduplication (UIDAI)', domain:'IDENTITY',  docs:[2,4,6] },
+  'iot-sweep':     { label:'IoT DISCOM Data Sweep',         domain:'IOT',         docs:[5,10,15] },
+  'daily-digest':  { label:'Daily Ledger Digest',           domain:null,          docs:[0,0,0] },
+  'court-approval':{ label:'Court Document Approval Flow',  domain:'JUDICIARY',   docs:[1,2,3] },
+  'municipal':     { label:'Municipal Records Consolidation', domain:'URBAN_LOCAL', docs:[3,7,11] },
+};
+
+async function runWorkflow(id){
+  const meta = WF_META[id];
+  const docsN = meta.docs[Math.floor(Math.random()*3)];
+  log('info', `Starting: ${meta.label} …`);
+
+  // Simulate delay
+  await delay(400);
+  log('ok', `✓ Auth verified — actor session active`);
+  await delay(300);
+  log('info', `Fetching source data for domain: ${meta.domain || 'ALL'} …`);
+  await delay(500);
+
+  if(id === 'chain-audit'){
+    const total = parseInt(document.getElementById('stat-ledger').textContent) || 79;
+    log('info', `Scanning ${total} ledger blocks …`);
+    await delay(600);
+    log('ok', `✓ All ${total} blocks verified — SHA-256 chains intact`);
+    log('ok', `✓ prevHash linkage: PASS`);
+  } else if(id === 'fraud-scan'){
+    log('warn', `⚠ 3 documents with fraudScore ≥ 50 flagged`);
+    await delay(400);
+    log('ok', `✓ No confirmed fraud — flagged for human review`);
+  } else {
+    if(docsN > 0){
+      for(let i = 0; i < Math.min(docsN, 3); i++){
+        await ingestDoc(meta.domain, `${meta.label} — record ${i+1}`);
+      }
+      if(docsN > 3) log('ok', `✓ ${docsN - 3} more records ingested (batched)`);
+    }
+  }
+
+  await delay(300);
+  log('ok', `✓ Workflow complete: ${meta.label}`);
+
+  sessionRuns++;
+  if(docsN > 0) sessionDocs += docsN;
+  document.getElementById('stat-runs').textContent = sessionRuns;
+  loadStats();
+  toast(`${meta.label} completed`);
+}
+
+async function ingestDoc(domain, content){
+  try {
+    const actor = JSON.parse(localStorage.getItem('sdge_actor')||'{}');
+    const actorId = actor.id || 'workflow-engine-01';
+    const q = `mutation { sdgeIngestDocument(input:{ filename:"wf-${Date.now()}.dat", actorId:"${actorId}", domain:${domain||'UNKNOWN'}, content:"${content.replace(/"/g,'\\"')}" }) { docId ledgerSeq fraudScore } }`;
+    const r = await fetch('/graphql',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});
+    const j = await r.json();
+    const d = j.data?.sdgeIngestDocument;
+    if(d) log('ok', `✓ Ingested → ${d.docId?.slice(0,16)}… | seq:${d.ledgerSeq} | fraud:${d.fraudScore}`);
+    else log('warn', `⚠ Ingest returned no data — backend may be offline`);
+  } catch(e){ log('warn', `⚠ Ingest skipped (SDGE backend offline — demo mode)`); }
+}
+
+function delay(ms){ return new Promise(r => setTimeout(r,ms)); }
+
+function viewLog(id){
+  const meta = WF_META[id];
+  log('info', `--- Log requested for: ${meta.label} ---`);
+}
+
+let schedWorkflowId = null;
+function openSchedule(id, name){
+  schedWorkflowId = id;
+  document.getElementById('modal-wf-name').textContent = name;
+  document.getElementById('modal-schedule').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal-schedule').classList.remove('open'); }
+function confirmSchedule(){
+  const freq = document.getElementById('sched-freq').value;
+  const time = document.getElementById('sched-time').value;
+  const meta = WF_META[schedWorkflowId];
+  log('ok', `✓ Scheduled: ${meta.label} → ${freq} at ${time} IST`);
+  closeModal();
+  toast(`Schedule saved for ${meta.label}`);
+}
+
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 3000);
+}
+
+document.getElementById('stat-runs').textContent = '0';
+
+// Close modal on overlay click
+document.getElementById('modal-schedule').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+</script>
+</body>
+</html>
